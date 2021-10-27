@@ -3,12 +3,14 @@ const express = require('express');
 const app = express();
 
 const items = [
-  { id: 1, name: 'item1' },
-  { id: 2, name: 'item2' },
+  { id: 1, firstName: 'John', lastName: 'Doe' },
+  { id: 2, firstName: 'Jane', lastName: 'Doe' },
+  { id: 3, firstName: 'Dave', lastName: 'Lopper' },
+  { id: 4, firstName: 'Dark', lastName: 'Vador' },
+  { id: 5, firstName: 'Mickey', lastName: 'Mouse' },
 ];
 
-app.get('/myroute', (req, res) => {
-  console.log('handling /myroute');
+app.get('/students', (req, res) => {
   res.send(items);
 });
 
