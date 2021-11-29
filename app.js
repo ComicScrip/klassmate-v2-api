@@ -52,13 +52,51 @@ notesRouter.post('/', (req, res) => {
   }
 });
 
+notesRouter.patch('/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, content } = req.body;
+  const { error: validationError } = Joi.object({
+    title: Joi.string().max(255),
+    content: Joi.string().max(65535),
+  }).validate({ title, content }, { abortEarly: false });
+
+  let editedNote = null;
+
+  if (validationError) {
+    res.status(422).json({ errors: validationError.details });
+  } else {
+    connection
+      .promise()
+      .query('SELECT id, title, content FROM notes WHERE id = ?', [id])
+      .then(([[note]]) => {
+        editedNote = note;
+        if (!note) throw new Error('NOT_FOUND');
+        else
+          connection
+            .promise()
+            .query('UPDATE notes SET ? WHERE id = ?', [{ ...req.body }, id])
+            .then(() => {
+              res.send({ ...editedNote, ...req.body });
+            });
+      })
+      .catch((err) => {
+        console.error(err);
+        if (err.message === 'NOT_FOUND') res.sendStatus(404);
+        else res.status(500).send('something went wrong while updating a note');
+      });
+  }
+});
+
 notesRouter.get('/', (req, res) => {
-  const searchInTitle = req.query.titleContains;
+  const search = req.query.titleOrContentContains;
   connection
     .promise()
-    .query(`SELECT * FROM notes ${searchInTitle ? 'WHERE title LIKE ?' : ''}`, [
-      `%${searchInTitle}%`,
-    ])
+    .query(
+      `SELECT * FROM notes ${
+        search ? 'WHERE title LIKE ? OR content LIKE ?' : ''
+      }`,
+      [`%${search}%`, `%${search}%`]
+    )
     .then(([results]) => {
       res.send(results);
     })
@@ -75,6 +113,16 @@ notesRouter.get('/:id', (req, res) => {
     .then(([[note]]) => {
       if (!note) res.sendStatus(404);
       else res.send(note);
+    });
+});
+
+notesRouter.delete('/:id', (req, res) => {
+  connection
+    .promise()
+    .query('DELETE FROM notes WHERE id = ?', [req.params.id])
+    .then(([result]) => {
+      if (!result.affectedRows) res.sendStatus(404);
+      else res.sendStatus(204);
     });
 });
 
