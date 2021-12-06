@@ -1,8 +1,5 @@
-const connection = require('../db');
+const db = require('../db');
 
 module.exports.getStudents = () => {
-  return connection
-    .promise()
-    .query("SELECT firstName, lastName, id FROM users WHERE role='student'")
-    .then(([res]) => res);
+  return db.user.findMany({ where: { role: 'student' } });
 };
